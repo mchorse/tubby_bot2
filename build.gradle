@@ -1,28 +1,19 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
-    }
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'java'
 }
-
-apply plugin: 'java'
-apply plugin: 'com.github.johnrengelman.shadow'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compile "net.dv8tion:JDA:5.0.0-beta.2"
-    compile "com.google.code.gson:gson:2.10"
+    implementation "net.dv8tion:JDA:5.0.0-beta.2"
+    implementation "com.google.code.gson:gson:2.10"
 }
 
 shadowJar {
     classifier = "shadow"
-    configurations = [project.configurations.compile]
 }
 
 jar {
