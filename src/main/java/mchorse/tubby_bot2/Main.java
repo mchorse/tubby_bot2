@@ -153,21 +153,18 @@ public class Main extends ListenerAdapter
 
     private void printAllFAQEntries(SlashCommandInteractionEvent event)
     {
-        List<String> keys = new ArrayList<String>(FAQ.strings.keySet());
         List<String> messages = new ArrayList<String>();
         String separator = ", ";
 
-        if (keys.isEmpty())
+        if (FAQ.strings.isEmpty())
         {
             messages.add("none...");
         }
         else
         {
-            keys.sort(String::compareTo);
+            String m = FAQ.listAll();
 
-            String m = keys.stream().map(elem -> "` " + elem + " `").collect(Collectors.joining(separator));
-
-            m = "Following FAQ entries are available: " + m;
+            m = "Following FAQ entries are available:\n\n" + m;
             messages.add(m);
         }
 
@@ -213,13 +210,13 @@ public class Main extends ListenerAdapter
             {
                 words.remove(key);
 
-                event.getHook().editOriginal(type + " " + key + " was removed!").queue();
+                event.getHook().editOriginal(type + " `" + key + "` was removed!").queue();
             }
             else
             {
                 words.put(key, content);
 
-                event.getHook().editOriginal(type + " " + key + " was updated!").queue();
+                event.getHook().editOriginal(type + " `" + key + "` was updated!").queue();
             }
         }
         else

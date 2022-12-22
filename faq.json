@@ -42,6 +42,7 @@
     "bb-wav": "Blockbuster\u0027s in-game audio sync works **only** with `.wav` (Wave) files. Renaming the audio file from `.mp3` or `.aiff` to `.wav` **won\u0027t do it**! You need to actually open the audio file in Audacity, and save it as a `.wav` file in order for it **to be converted properly**. You can download Audacity here: https://www.audacityteam.org/download/",
     "fight-scene": "This video by **SeanFilmProduction** shows how to do **fight scenes** in Blockbuster: \nhttps://youtu.be/FzCCg2mJscw",
     "custom-hitbox": "This excerpt shows how to **configure custom hitbox for any morph**: \nhttps://youtu.be/kOCBBrPEWYk?t\u003d179",
+    "bb-wheels": "This tutorial shows how to **add spinning wheels to a model with wheels**: https://www.youtube.com/watch?v\u003dn8XGP_xGhBY",
     "bb-camera-sync": "This video shows how to **synchronize Aperture\u0027s camera editor with Blockbuster\u0027s scenes**, and **how to record video**:\nhttps://www.youtube.com/watch?v\u003dVfSZs4f7Dx0",
     "bb-record-morph": "This video shows how to use **record morph, which allows to playback a Blockbuster player recording, inside of a morph**:\nhttps://www.youtube.com/watch?v\u003dGnkbJ6teY0o",
     "bb-record-editing": "This video shows how to **edit player recording files**:\nhttps://www.youtube.com/watch?v\u003dVQZe44ergjU",

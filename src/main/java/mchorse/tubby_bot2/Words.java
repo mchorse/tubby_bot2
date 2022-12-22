@@ -14,8 +14,15 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Words
@@ -23,6 +30,91 @@ public class Words
     public String id;
     public File file;
     public Map<String, String> strings;
+
+    private static Map<String, List<String>> getCommonPrefix(Set<String> keys)
+    {
+        Map<String, List<String>> prefixes = new LinkedHashMap<String, List<String>>();
+        List<String> noPrefix = new ArrayList<String>();
+
+        while (!keys.isEmpty())
+        {
+            int longest = 0;
+            Iterator<String> it = keys.iterator();
+            String first = it.next();
+            List<String> words = new ArrayList<String>();
+
+            it.remove();
+
+            while (it.hasNext())
+            {
+                String word = it.next();
+                int firstLength = first.length();
+                int wordLength = word.length();
+
+                for (int i = 0, c = Math.min(firstLength, wordLength); i < c; i++)
+                {
+                    if (first.charAt(i) != word.charAt(i) && first.charAt(i) == '-')
+                    {
+                        longest = Math.max(i, longest);
+
+                        break;
+                    }
+                }
+            }
+
+            if (longest > 0)
+            {
+                String prefix = first.substring(0, longest);
+
+                it = keys.iterator();
+
+                while (it.hasNext())
+                {
+                    String word = it.next();
+
+                    if (word.startsWith(prefix))
+                    {
+                        it.remove();
+                        words.add(word);
+                    }
+                }
+            }
+
+            words.add(first);
+
+            if (words.size() == 1)
+            {
+                noPrefix.add(first);
+            }
+            else
+            {
+                prefixes.put(first.substring(0, longest), words);
+            }
+        }
+
+        Iterator<String> it = noPrefix.iterator();
+
+        while (it.hasNext())
+        {
+            String word = it.next();
+
+            for (String key : prefixes.keySet())
+            {
+                if (word.startsWith(key))
+                {
+                    prefixes.get(key).add(word);
+                    it.remove();
+                }
+            }
+        }
+
+        if (!noPrefix.isEmpty())
+        {
+            prefixes.put("", noPrefix);
+        }
+
+        return prefixes;
+    }
 
     private static String readFile(File file)
     {
@@ -137,5 +229,38 @@ public class Words
         }
 
         return false;
+    }
+
+    public String listAll()
+    {
+        List<String> keys = new ArrayList<String>(this.strings.keySet());
+
+        keys.sort(String::compareTo);
+
+        Map<String, List<String>> prefixes = getCommonPrefix(new LinkedHashSet<String>(keys));
+        List<String> misc = prefixes.remove("");
+        StringBuilder builder = new StringBuilder();
+        String separator = ", ";
+
+        for (Map.Entry<String, List<String>> entry : prefixes.entrySet())
+        {
+            String key = entry.getKey();
+
+            entry.getValue().sort(String::compareTo);
+
+            builder.append("`" + key + "`:\n> ");
+            builder.append(entry.getValue().stream().map(elem -> "`" + elem + "`").collect(Collectors.joining(separator)));
+            builder.append('\n');
+        }
+
+        if (misc != null)
+        {
+            misc.sort(String::compareTo);
+
+            builder.append("Miscellaneous:\n> ");
+            builder.append(misc.stream().map(elem -> "`" + elem + "`").collect(Collectors.joining(separator)));
+        }
+
+        return builder.toString();
     }
 }
