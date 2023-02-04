@@ -39,7 +39,7 @@ public class Main extends ListenerAdapter
         builder.disableCache(CacheFlag.MEMBER_OVERRIDES, CacheFlag.VOICE_STATE);
         builder.setBulkDeleteSplittingEnabled(false);
         builder.setActivity(Activity.playing("/faq"));
-        builder.addEventListeners(new Main());
+        builder.addEventListeners(new Main(), new WarningRoleManager("warnings.json"));
 
         JDA jda = builder.build();
 
