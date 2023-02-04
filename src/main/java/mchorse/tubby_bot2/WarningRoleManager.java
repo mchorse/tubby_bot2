@@ -7,17 +7,26 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.UserSnowflake;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class WarningRoleManager extends ListenerAdapter
 {
@@ -34,13 +43,14 @@ public class WarningRoleManager extends ListenerAdapter
     private JsonObject getJsonDB() throws IOException {
         StringBuilder json = new StringBuilder();
 
-        BufferedReader reader = new BufferedReader(new FileReader(this.db, StandardCharsets.UTF_8));
-        String line;
-        while ((line = reader.readLine()) != null)
+        try (Stream<String> stream = Files.lines(Paths.get(this.db.getAbsolutePath()), StandardCharsets.UTF_8))
         {
-            json.append(line).append("\n");
+            stream.forEach(s -> json.append(s).append("\n"));
         }
-        reader.close();
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return JsonParser.parseString(json.toString()).getAsJsonObject();
     }
@@ -82,7 +92,7 @@ public class WarningRoleManager extends ListenerAdapter
     }
 
     /**
-     * Updates the users' waring roles or removes them if they
+     * Updates the users' warning roles or removes them if they
      * either left, warning role expired, have no waring role anymore on the server or the data is corrupt.
      * @return true if a user has been modified in the data. False if nothing has been updated.
      * @throws IOException
@@ -177,6 +187,47 @@ public class WarningRoleManager extends ListenerAdapter
             {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void updateWarningExpiration(SlashCommandInteractionEvent event)
+    {
+        event.deferReply().queue();
+
+        Member member = event.getOption("user", OptionMapping::getAsMember);
+        Double days = event.getOption("days", OptionMapping::getAsDouble);
+        long millis = Math.round(days * 86400000L);
+        long expirationMillis = System.currentTimeMillis() + millis;
+
+        if (this.warnings.containsKey(member.getIdLong())) {
+            this.warnings.get(member.getIdLong()).expirationTime = (days == -1) ? -1 : expirationMillis;
+
+            try
+            {
+                this.saveUsers();
+
+                if (days != -1)
+                {
+                    DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+                    Date expiration = new Date(expirationMillis);
+
+                    event.getHook().editOriginal("The user's " + member.getNickname()
+                            + " warning role will now expire on " + df.format(expiration) + ".").queue();
+                }
+                else
+                {
+                    event.getHook().editOriginal("The user's " + member.getNickname()
+                            + " warning role will now expire never.").queue();
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        else
+        {
+            event.getHook().editOriginal("The user " + member.getNickname() + " has no warning role...").queue();
         }
     }
 

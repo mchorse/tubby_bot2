@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -27,11 +28,13 @@ public class Main extends ListenerAdapter
 
     public static Words FAQ;
     public static Words responses;
+    public static WarningRoleManager warnings;
 
     public static void main(String[] args)
     {
         FAQ = new Words("faq", new File("./faq.json"));
         responses = new Words("responses", new File("./responses.json"));
+        warnings = new WarningRoleManager("warnings.json");
 
         JDABuilder builder = JDABuilder.createDefault(args[0]);
 
@@ -39,7 +42,7 @@ public class Main extends ListenerAdapter
         builder.disableCache(CacheFlag.MEMBER_OVERRIDES, CacheFlag.VOICE_STATE);
         builder.setBulkDeleteSplittingEnabled(false);
         builder.setActivity(Activity.playing("/faq"));
-        builder.addEventListeners(new Main(), new WarningRoleManager("warnings.json"));
+        builder.addEventListeners(new Main(), warnings);
 
         JDA jda = builder.build();
 
@@ -61,7 +64,12 @@ public class Main extends ListenerAdapter
                 .setGuildOnly(true)
                 .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 .addOption(OptionType.STRING, "entry", "Response you want the bot to update")
-                .addOption(OptionType.STRING, "content", "Content of that response")
+                .addOption(OptionType.STRING, "content", "Content of that response"),
+            Commands.slash("warning-expire", "Update the warning time of a user. -1 if it should never expire.")
+                .setGuildOnly(true)
+                .addOption(OptionType.USER, "user", "The user with the warning role.")
+                .addOption(OptionType.NUMBER, "days", "How many days from the current date on should the warning role last." +
+                                                            "-1 if it should never expire.")
         ).queue();
     }
 
@@ -132,6 +140,9 @@ public class Main extends ListenerAdapter
         else if (name.equals("response-set"))
         {
             this.updateEntry(responses, "Response", event);
+        }
+        else if (name.equals("warning-expire")) {
+            warnings.updateWarningExpiration(event);
         }
     }
 
