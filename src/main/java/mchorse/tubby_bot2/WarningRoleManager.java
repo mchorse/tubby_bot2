@@ -43,7 +43,7 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
     private JsonObject getJsonDB() throws IOException {
         StringBuilder json = new StringBuilder();
 
-        Stream<String> stream = Files.lines(Paths.get(this.db.getAbsolutePath()), StandardCharsets.UTF_8));
+        Stream<String> stream = Files.lines(Paths.get(this.db.getAbsolutePath()), StandardCharsets.UTF_8);
         stream.forEach(s -> json.append(s).append("\n"));
         stream.close();
 
