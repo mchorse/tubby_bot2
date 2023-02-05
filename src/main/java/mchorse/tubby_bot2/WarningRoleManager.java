@@ -152,9 +152,9 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
     @Override
     public void onGuildMemberRemove(GuildMemberRemoveEvent event)
     {
-        if (this.server == null) return;
+        if (this.server == null || event.getMember() == null) return;
 
-        if (this.warnings.containsKey(event.getMember().getIdLong()))
+        if (this.users.containsKey(event.getMember().getIdLong()))
         {
             try
             {
