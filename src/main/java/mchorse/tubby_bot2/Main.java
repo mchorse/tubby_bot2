@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -17,6 +18,8 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,11 +30,14 @@ public class Main extends ListenerAdapter
 
     public static Words FAQ;
     public static Words responses;
+    public static WarningRoleManager warnings;
+    public static final long MCHORSEPUBID = 252148970338385921L;
 
     public static void main(String[] args)
     {
         FAQ = new Words("faq", new File("./faq.json"));
         responses = new Words("responses", new File("./responses.json"));
+        warnings = new WarningRoleManager("warnings.json");
 
         JDABuilder builder = JDABuilder.createDefault(args[0]);
 
@@ -39,7 +45,7 @@ public class Main extends ListenerAdapter
         builder.disableCache(CacheFlag.MEMBER_OVERRIDES, CacheFlag.VOICE_STATE);
         builder.setBulkDeleteSplittingEnabled(false);
         builder.setActivity(Activity.playing("/faq"));
-        builder.addEventListeners(new Main());
+        builder.addEventListeners(new Main(), warnings);
 
         JDA jda = builder.build();
 
@@ -61,8 +67,16 @@ public class Main extends ListenerAdapter
                 .setGuildOnly(true)
                 .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
                 .addOption(OptionType.STRING, "entry", "Response you want the bot to update")
-                .addOption(OptionType.STRING, "content", "Content of that response")
+                .addOption(OptionType.STRING, "content", "Content of that response"),
+            Commands.slash("warning-expire", "Update the warning time of a user. -1 if it should never expire.")
+                .setGuildOnly(true)
+                .addOption(OptionType.USER, "user", "The user with the warning role.")
+                .addOption(OptionType.NUMBER, "days", "How many days from the current date on should the warning role last." +
+                                                            "-1 if it should never expire.")
         ).queue();
+
+        ScheduledThreadPoolExecutor threadPool = new ScheduledThreadPoolExecutor(1);
+        threadPool.scheduleAtFixedRate(warnings, 0, 2, TimeUnit.DAYS);
     }
 
     public static String wrapFaq(String key, String content)
@@ -132,6 +146,9 @@ public class Main extends ListenerAdapter
         else if (name.equals("response-set"))
         {
             this.updateEntry(responses, "Response", event);
+        }
+        else if (name.equals("warning-expire")) {
+            warnings.updateWarningExpiration(event);
         }
     }
 
