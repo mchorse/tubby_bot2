@@ -94,6 +94,7 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
         String prettyJsonString = gson.toJson(JsonParser.parseString(dbJson.toString()));
 
         writer.write(prettyJsonString);
+        writer.close();
     }
 
     /**
