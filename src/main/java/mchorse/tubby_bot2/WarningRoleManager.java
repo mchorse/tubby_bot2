@@ -1,6 +1,7 @@
 package mchorse.tubby_bot2;
 
 import com.google.gson.*;
+import com.google.gson.stream.JsonWriter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
@@ -12,16 +13,12 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +29,13 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
 {
     private File db;
     private Guild server;
-    private final Map<String, Warning> warnings = new HashMap<>();
+    /**
+     * Mapping of warning name and warning role information.
+     */
+    private final Map<String, Warning> warningRoles = new HashMap<>();
+    /**
+     * Mapping of user long id and their warning information
+     */
     private final Map<Long, UserWarning> users = new HashMap<>();
 
     public WarningRoleManager(String filename)
@@ -62,7 +65,7 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
             JsonObject warning = levels.getAsJsonObject(key);
             if (this.server.getRoleById(warning.get("id").getAsLong()) == null) continue;
 
-            this.warnings.put(key, new Warning(key,
+            this.warningRoles.put(key, new Warning(key,
                     warning.get("id").getAsLong(),
                     warning.get("expiration").getAsLong()));
         }
@@ -78,12 +81,19 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
         JsonObject dbJson = this.getJsonDB();
 
         JsonArray usersJson = new JsonArray();
-        for(Map.Entry<Long, UserWarning> user : this.users.entrySet())
+        for (Map.Entry<Long, UserWarning> user : this.users.entrySet())
         {
             usersJson.add(user.getValue().toJson());
         }
-
+        /* remove old key, safety first */
+        dbJson.remove("users");
         dbJson.add("users", usersJson);
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter(this.db));
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String prettyJsonString = gson.toJson(JsonParser.parseString(dbJson.toString()));
+
+        writer.write(prettyJsonString);
     }
 
     /**
@@ -119,7 +129,7 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
             UserWarning userWarning;
             try
             {
-                userWarning = UserWarning.fromJson(user, this.warnings);
+                userWarning = UserWarning.fromJson(user, this.warningRoles);
             }
             catch (IOException e) {
                 users.remove(element);
@@ -128,7 +138,7 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
             }
 
             if (System.currentTimeMillis() > user.get("expiration").getAsLong()
-                    && user.get("expiration").getAsLong() != -1)
+                    && userWarning.expirationTimeStamp != -1)
             {
                 Role role = this.server.getRoleById(userWarning.warning.roleID);
                 UserSnowflake userSnowflake = this.server.getMemberById(userWarning.userID);
@@ -156,9 +166,10 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
 
         if (this.users.containsKey(event.getMember().getIdLong()))
         {
+            this.users.remove(event.getMember().getIdLong());
+
             try
             {
-                this.updateUsers();
                 this.saveUsers();
             }
             catch (IOException e) {
@@ -191,12 +202,22 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
         event.deferReply().queue();
 
         Member member = event.getOption("user", OptionMapping::getAsMember);
+        if (member == null)
+        {
+            event.getHook().editOriginal("The user is NULL!?").queue();
+            return;
+        }
+
         Double days = event.getOption("days", OptionMapping::getAsDouble);
+        if (days == null) {
+            event.getHook().editOriginal("The days value is NULL!?").queue();
+            return;
+        }
         long millis = Math.round(days * 86400000L);
         long expirationMillis = System.currentTimeMillis() + millis;
 
-        if (this.warnings.containsKey(member.getIdLong())) {
-            this.warnings.get(member.getIdLong()).expirationTime = (days == -1) ? -1 : expirationMillis;
+        if (this.users.containsKey(member.getIdLong())) {
+            this.users.get(member.getIdLong()).expirationTimeStamp = (days == -1) ? -1 : expirationMillis;
 
             try
             {
@@ -236,7 +257,16 @@ public class WarningRoleManager extends ListenerAdapter implements Runnable
         for (Role role : added)
         {
             long userID = event.getMember().getIdLong();
-            Warning warning = this.warnings.get(role.getIdLong());
+            Warning warning = null;
+
+            for (Warning warn : this.warningRoles.values())
+            {
+                if (warn.roleID == role.getIdLong())
+                {
+                    warning = warn;
+                    break;
+                }
+            }
 
             if (warning != null)
             {
