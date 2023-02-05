@@ -18,6 +18,8 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ public class Main extends ListenerAdapter
     public static Words FAQ;
     public static Words responses;
     public static WarningRoleManager warnings;
+    public static final long MCHORSEPUBID = 252148970338385921L;
 
     public static void main(String[] args)
     {
@@ -71,6 +74,9 @@ public class Main extends ListenerAdapter
                 .addOption(OptionType.NUMBER, "days", "How many days from the current date on should the warning role last." +
                                                             "-1 if it should never expire.")
         ).queue();
+
+        ScheduledThreadPoolExecutor threadPool = new ScheduledThreadPoolExecutor(1);
+        threadPool.scheduleAtFixedRate(warnings, 0, 2, TimeUnit.DAYS);
     }
 
     public static String wrapFaq(String key, String content)

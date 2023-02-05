@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class WarningRoleManager extends ListenerAdapter
+public class WarningRoleManager extends ListenerAdapter implements Runnable
 {
     private File db;
     private Guild server;
@@ -143,6 +143,7 @@ public class WarningRoleManager extends ListenerAdapter
                     this.server.removeRoleFromMember(userSnowflake, role).queue();
                 }
 
+                users.remove(element);
                 update = true;
                 continue;
             }
@@ -175,7 +176,7 @@ public class WarningRoleManager extends ListenerAdapter
     public void onReady(ReadyEvent event)
     {
         /* McHorse's Pub, noice. */
-        this.server = event.getJDA().getGuildById(252148970338385921L);
+        this.server = event.getJDA().getGuildById(Main.MCHORSEPUBID);
 
         if (this.server != null)
         {
@@ -260,6 +261,24 @@ public class WarningRoleManager extends ListenerAdapter
         }
     }
 
+    @Override
+    public void run()
+    {
+        try
+        {
+            if (this.updateUsers())
+            {
+                this.saveUsers();
+
+                System.out.println("Updated users and saved them.");
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     private static class UserWarning
     {
         private long expirationTimeStamp;
@@ -276,9 +295,11 @@ public class WarningRoleManager extends ListenerAdapter
         public static UserWarning fromJson(JsonObject user, Map<String, Warning> warnings) throws IOException
         {
             Warning warn = null;
+
             for(Map.Entry<String, Warning> element : warnings.entrySet()) {
                 if (user.get("level").getAsString().equals(element.getKey())) {
                     warn = element.getValue();
+                    break;
                 }
             }
 
