@@ -12,8 +12,8 @@ dependencies {
     implementation "com.google.code.gson:gson:2.10"
 }
 
-shadowJar {
-    classifier = "shadow"
+tasks.named('shadowJar') {
+    archiveClassifier.set("shadow")
 }
 
 jar {
