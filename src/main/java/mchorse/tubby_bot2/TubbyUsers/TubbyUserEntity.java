@@ -2,7 +2,7 @@ package mchorse.tubby_bot2.TubbyUsers;
 
 public class TubbyUserEntity {
 
-    private String discordUserId;
+    private final String discordUserId;
     private String channelUrl;
 
     public TubbyUserEntity(String discordUserId) {
