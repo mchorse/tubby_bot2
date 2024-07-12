@@ -7,7 +7,6 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -19,7 +18,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -173,29 +171,13 @@ public class Main extends ListenerAdapter
     {
         String name = event.getName();
 
-        if (name.equals("faq"))
-        {
-            this.printFAQEntry(event);
-        }
-        else if (name.equals("faq-all"))
-        {
-            this.printAllFAQEntries(event);
-        }
-        else if (name.equals("faq-set"))
-        {
-            this.updateEntry(FAQ, "FAQ entry", event);
-        }
-        else if (name.equals("response-set"))
-        {
-            this.updateEntry(responses, "Response", event);
-        }
-        else if (name.equals("get-channel"))
-        {
-            this.printChannel(event);
-        }
-        else if (name.equals("set-my-channel"))
-        {
-            this.setMyChannel(event);
+        switch (name) {
+            case "faq" -> this.printFAQEntry(event);
+            case "faq-all" -> this.printAllFAQEntries(event);
+            case "faq-set" -> this.updateEntry(FAQ, "FAQ entry", event);
+            case "response-set" -> this.updateEntry(responses, "Response", event);
+            case "get-channel" -> this.printChannel(event);
+            case "set-my-channel" -> this.setMyChannel(event);
         }
     }
 
@@ -222,7 +204,6 @@ public class Main extends ListenerAdapter
     private void printChannel(SlashCommandInteractionEvent event) {
         event.deferReply().queue();
         User user = event.getOption("user", OptionMapping::getAsUser);
-        User eventAuthor = event.getUser();
 
         if (user == null)
         {

@@ -14,8 +14,8 @@ import java.io.*;
  */
 public class TubbyUserDatabase {
 
-    private File jsonFile;
-    private JsonObject usersJsonObject;
+    private final File jsonFile;
+    private final JsonObject usersJsonObject;
 
     /**
      * Constructor of TubbyUserDatabase.
