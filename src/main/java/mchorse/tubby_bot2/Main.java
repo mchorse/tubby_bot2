@@ -1,7 +1,7 @@
 package mchorse.tubby_bot2;
 
-import mchorse.tubby_bot2.TubbyUsers.TubbyUserDatabase;
-import mchorse.tubby_bot2.TubbyUsers.TubbyUserEntity;
+import mchorse.tubby_bot2.users.TubbyUserDatabase;
+import mchorse.tubby_bot2.users.TubbyUserEntity;
 import mchorse.tubby_bot2.utils.UrlValidator;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -20,9 +20,8 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,18 +29,17 @@ import java.util.regex.Pattern;
 public class Main extends ListenerAdapter
 {
     public static final Pattern PATTERN = Pattern.compile("((?<=[^@]\\!)[\\w\\d\\-]+)", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+    public static final List<String> channelUrlGivenOnlyChannels = Arrays.asList("1261606498220642334");
 
     public static Words FAQ;
     public static Words responses;
-
     public static TubbyUserDatabase tubbyUserDatabase;
-    public static List<String> channelUrlGivenOnlyChannels = List.of("945032094344687657");
-
 
     public static void main(String[] args)
     {
         FAQ = new Words("faq", new File("./faq.json"));
         responses = new Words("responses", new File("./responses.json"));
+        tubbyUserDatabase = new TubbyUserDatabase(new File("./users.json"));
 
         JDABuilder builder = JDABuilder.createDefault(args[0]);
 
@@ -52,7 +50,6 @@ public class Main extends ListenerAdapter
         builder.addEventListeners(new Main());
 
         JDA jda = builder.build();
-
 
         jda.updateCommands().addCommands(
             /* FAQ */
@@ -80,18 +77,11 @@ public class Main extends ListenerAdapter
                 .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_SEND))
                 .addOption(OptionType.USER, "user", "User you want to get the channel of"),
 
-            Commands.slash("set-my-channel", "Set your YouTube/Bilibili or whatever channel!!")
-                    .setGuildOnly(true)
-                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_SEND))
-                    .addOption(OptionType.STRING, "channel_url", "Your channelUrl!")
+            Commands.slash("set-my-channel", "Specify your YouTube/Bilibili or whatever channel")
+                .setGuildOnly(true)
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_SEND))
+                .addOption(OptionType.STRING, "channel_url", "Your channel URL")
         ).queue();
-
-        /* Tubby User Database */
-        try {
-            tubbyUserDatabase = new TubbyUserDatabase(new File("./users.json"));
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public static String wrapFaq(String key, String content)
@@ -107,31 +97,40 @@ public class Main extends ListenerAdapter
             return;
         }
 
-        processChannelUrlOnlyGivenChannels(event);
-        processFaqChatMessage(event);
+        this.processChannelUrlOnlyGivenChannels(event);
+        this.processFaqChatMessage(event);
     }
 
     /**
      * Process the message and check if it was sent in a channel that requires the channel_url in the TubbyUserEntity to be set
+     *
      * @param event
      */
-    public void processChannelUrlOnlyGivenChannels(MessageReceivedEvent event) {
+    public void processChannelUrlOnlyGivenChannels(MessageReceivedEvent event)
+    {
         Channel channel = event.getChannel();
         User eventAuthor = event.getAuthor();
+
+        if (!channelUrlGivenOnlyChannels.contains(channel.getId()))
+        {
+            return;
+        }
+
         TubbyUserEntity tubbyUser = tubbyUserDatabase.getTubbyUser(eventAuthor.getId());
 
-        if(!channelUrlGivenOnlyChannels.contains(channel.getId())) return;
-        if(!tubbyUser.getChannelUrl().isBlank()) return; // Checking if user defined a channel in Tubby Bot
-
-        event.getMessage().getChannel().sendMessage("Hey, " + eventAuthor.getAsMention() + " you cannot send messages in this channel. To be able to send messages, please update your channel url using the command /set-my-channel [channel-url].").queue();
-        event.getMessage().delete().queue();
+        if (tubbyUser == null)
+        {
+            event.getMessage().reply("Hey, " + eventAuthor.getAsMention() + " you cannot send messages in this channel. To be able to send messages, please update your channel url using the command /set-my-channel [channel-url].").queue();
+            event.getMessage().delete().queue();
+        }
     }
 
     /**
      * Process the message and send the corresponding FAQ
      * @param event
      */
-    public void processFaqChatMessage(MessageReceivedEvent event) {
+    public void processFaqChatMessage(MessageReceivedEvent event)
+    {
         /* Matcher can't find if the entire string matches the pattern, hence empty space */
         String message = event.getMessage().getContentDisplay().trim();
 
@@ -171,13 +170,29 @@ public class Main extends ListenerAdapter
     {
         String name = event.getName();
 
-        switch (name) {
-            case "faq" -> this.printFAQEntry(event);
-            case "faq-all" -> this.printAllFAQEntries(event);
-            case "faq-set" -> this.updateEntry(FAQ, "FAQ entry", event);
-            case "response-set" -> this.updateEntry(responses, "Response", event);
-            case "get-channel" -> this.printChannel(event);
-            case "set-my-channel" -> this.setMyChannel(event);
+        if (name.equals("faq"))
+        {
+            this.printFAQEntry(event);
+        }
+        else if (name.equals("faq-all"))
+        {
+            this.printAllFAQEntries(event);
+        }
+        else if (name.equals("faq-set"))
+        {
+            this.updateEntry(FAQ, "FAQ entry", event);
+        }
+        else if (name.equals("response-set"))
+        {
+            this.updateEntry(responses, "Response", event);
+        }
+        else if (name.equals("get-channel"))
+        {
+            this.printChannel(event);
+        }
+        else if (name.equals("set-my-channel"))
+        {
+            this.setMyChannel(event);
         }
     }
 
@@ -199,61 +214,63 @@ public class Main extends ListenerAdapter
 
     /**
      * get-channel slash command handler
+     *
      * @param event
      */
-    private void printChannel(SlashCommandInteractionEvent event) {
+    private void printChannel(SlashCommandInteractionEvent event)
+    {
         event.deferReply().queue();
+
         User user = event.getOption("user", OptionMapping::getAsUser);
 
         if (user == null)
         {
             event.getHook().editOriginal("Please provide `user` option!").queue();
+
             return;
         }
-
-
 
         TubbyUserEntity tubbyUser = tubbyUserDatabase.getTubbyUser(user.getId());
 
-        if (tubbyUser.getChannelUrl() == null) {
-            // Profile do not exists, therefore channel is not set
-            event.getHook().editOriginal("User do not have a YouTube channel registered in my database!").queue();
-            return;
+        if (tubbyUser != null)
+        {
+            event.getHook().editOriginal("Here's " + user.getName() + "'s channel.\nPlease note that crediting in the channel description is not enough. Credit must be in every video made with BBS mod!\n" + tubbyUser.getChannelUrl()).queue();
         }
-
-        event.getHook().editOriginal("Here's the channel of " + user.getName() + ". \nPlease note that crediting in the channel description is not enough. Credit must be in every videos.\n" + tubbyUser.getChannelUrl()).queue();
+        else
+        {
+            // Profile does not exist, therefore channel is not set
+            event.getHook().editOriginal("User do not have a YouTube channel registered in my database!").queue();
+        }
     }
 
     /**
      * set-my-channel slash command handler
+     *
      * @param event
      */
-    private void setMyChannel(SlashCommandInteractionEvent event) {
+    private void setMyChannel(SlashCommandInteractionEvent event)
+    {
         event.deferReply().queue();
-        User eventAuthor = event.getUser();
 
-        // Arguments
+        User eventAuthor = event.getUser();
         String channelUrl = event.getOption("channel_url", OptionMapping::getAsString);
 
-        if(!UrlValidator.isValidURL(channelUrl)) {
-            event.getHook().editOriginal("The url you gave is not valid!").queue();
-            return;
+        if (!UrlValidator.isValidURL(channelUrl))
+        {
+            event.getHook().editOriginal("The channel URL you provided is not valid!").queue();
         }
+        else
+        {
+            TubbyUserEntity tubbyUser = new TubbyUserEntity(eventAuthor.getId());
 
-        TubbyUserEntity tubbyUser = tubbyUserDatabase.getTubbyUser(eventAuthor.getId());
-        tubbyUser.setChannelUrl(channelUrl);
+            tubbyUser.setChannelUrl(channelUrl);
 
-        tubbyUserDatabase.saveTubbyUserEntity(tubbyUser);
-        try {
+            tubbyUserDatabase.addUser(tubbyUser);
             tubbyUserDatabase.save();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+
+            event.getHook().editOriginal("Your channel URL has been updated, thank you!").queue();
         }
-
-        event.getHook().editOriginal("Your channel url has been updated, thank you!").queue();
     }
-
-
 
     private void printAllFAQEntries(SlashCommandInteractionEvent event)
     {

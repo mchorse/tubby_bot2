@@ -23,3 +23,5 @@ gradle-app.setting
 # Build
 /out
 /.idea
+
+./users.json

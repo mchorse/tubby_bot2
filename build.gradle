@@ -13,7 +13,7 @@ dependencies {
 }
 
 tasks.named('shadowJar') {
-    archiveClassifier.set("shadow")
+    classifier = "shadow"
 }
 
 jar {
